@@ -25,7 +25,7 @@ class YoloDetector(Detector):
 
 class YoloWorld(Detector):
     def __init__(self) -> None:
-        self.model = YoloWorld()
+        self.model = YoloWorld("yoloworld.pt")
         super(YoloWorld, self).__init__()
 
 class OpenCVDetector(Detector):

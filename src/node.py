@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
 
 import rospy
-from vision_node.msg import Detection
-from vision_node.srv import EnableYolo, EnableYoloResponse
+from detector_node.msg import Detection
+from detector_node.srv import EnableDetector, EnableDetectorResponse, SetCustomClasses, SetCustomClassesResponse
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Point, PoseStamped
+from sensor_msgs.msg import RegionOfInterest
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
-from ultralytics import YOLO
+from ultralytics import YOLO, YOLOWorld
 import numpy as np
 import tf.transformations as tft
+import yaml
 
-# Global variable to enable/disable YOLO detection
-yolo_enabled = False
+# Global variables to enable/disable detectors
+detectors = {
+    "yolo": YOLO("yolov8n.pt"),
+    "yolo_world": YOLOWorld("yolov8s-world.pt")
+}
+current_detector = None
+bridge = CvBridge()
+depth_image = None
+camera_info = None
+imu_pose = None
 
-# Function to handle the EnableYolo service
-def handle_enable_yolo(req):
-    global yolo_enabled
-    yolo_enabled = req.enable
-    return EnableYoloResponse(success=True)
 
-# Function to read YAML configuration file
 def read_yaml_file(file_path):
     with open(file_path, 'r') as stream:
         try:
@@ -29,12 +33,34 @@ def read_yaml_file(file_path):
             rospy.logerr(exc)
             return None
 
-# Initialize YOLO model
-model = YOLO("yolov8n.pt")
-bridge = CvBridge()
-depth_image = None
-camera_info = None
-imu_pose = None
+# Function to handle the EnableDetector service
+def handle_enable_detector(req):
+    global current_detector
+    detector_name = req.detector_name
+
+    if detector_name in detectors:
+        current_detector = detectors[detector_name]
+        rospy.loginfo(f"{detector_name} detector enabled.")
+        return EnableDetectorResponse(success=True)
+    else:
+        rospy.logerr(f"Detector '{detector_name}' not found.")
+        return EnableDetectorResponse(success=False)
+
+
+# Function to handle the SetCustomClasses service
+def handle_set_custom_classes(req):
+    global current_detector
+    classes = req.classes
+    save_path = req.save_path
+
+    if current_detector is not None:
+        current_detector.set_classes(classes)
+        current_detector.save(save_path)
+        rospy.loginfo(f"Custom classes set and model saved to {save_path}")
+        return SetCustomClassesResponse(success=True)
+    else:
+        rospy.logerr("No detector is currently enabled.")
+        return SetCustomClassesResponse(success=False)
 
 # Callback function for depth image data
 def depth_image_callback(msg):
@@ -70,16 +96,17 @@ def transform_to_global(point, pose):
 
 # Callback function for image data
 def zed_image_callback(msg):
-    global depth_image, camera_info, imu_pose, yolo_enabled
-    if not yolo_enabled:
+    global depth_image, camera_info, imu_pose, current_detector
+    if current_detector is None:
         return
 
     try:
         # Convert the ROS Image message to a numpy array
         cv_image = bridge.imgmsg_to_cv2(msg, "bgr8")
+        annotated_image = cv_image.copy()
 
-        # Run YOLOv8 detection
-        results = model.track(cv_image, persist=True)[0]
+        # Run detection using the current detector
+        results = current_detector.track(cv_image, persist=True)[0]
 
         for data in results.boxes.data:
             x_min, y_min, x_max, y_max, track_id, conf, cls = data.cpu().numpy()
@@ -94,6 +121,11 @@ def zed_image_callback(msg):
                 height=int(y_max - y_min),
                 width=int(x_max - x_min)
             )
+
+            # Draw bounding box and label on the image
+            cv2.rectangle(annotated_image, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)
+            label = f"{int(cls)}: {conf:.2f}"
+            cv2.putText(annotated_image, label, (int(x_min), int(y_min) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # Calculate the average depth within the bounding box
             if depth_image is not None:
@@ -129,6 +161,10 @@ def zed_image_callback(msg):
 
             pub.publish(detection_msg)
 
+        # Publish the annotated image
+        annotated_msg = bridge.cv2_to_imgmsg(annotated_image, "bgr8")
+        annotated_pub.publish(annotated_msg)
+
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
 
@@ -149,11 +185,11 @@ def initialize_subscribers(topics_file):
 if __name__ == "__main__":
     rospy.init_node('yolo_detector')
 
-    # Publisher for Detection messages
     pub = rospy.Publisher('detections', Detection, queue_size=10)
+    annotated_pub = rospy.Publisher('annotated_image', Image, queue_size=10)
 
-    # Initialize the EnableYolo service
-    service = rospy.Service('enable_yolo', EnableYolo, handle_enable_yolo)
+    service_enable_detector = rospy.Service('enable_detector', EnableDetector, handle_enable_detector)
+    service_set_custom_classes = rospy.Service('set_custom_classes', SetCustomClasses, handle_set_custom_classes)
 
     initialize_subscribers("params/topics.yml")
 

@@ -9,8 +9,9 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ./:/home/catkin_ws/src/vision_node
-
+      - ./:/home/catkin_ws/src/detector_node
+    ports:
+      - "8000:8000"  # Maps host port 8000 to container port 8000
     # deploy:
     #   resources:
     #     reservations:

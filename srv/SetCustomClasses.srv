@@ -1,0 +1,4 @@
+string[] classes  # List of custom classes
+string save_path  # Path to save the custom model
+---
+bool success

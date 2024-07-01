@@ -1,0 +1,3 @@
+string detector_name  # Name of the detector to enable (e.g., "yolo" or "another_model")
+---
+bool success

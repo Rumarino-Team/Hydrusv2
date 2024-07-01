@@ -14,6 +14,12 @@ add_message_files(
   Detection.msg
 )
 
+add_service_files(
+  FILES
+  EnableDetector.srv
+  SetCustomClasses.srv
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -27,9 +33,4 @@ catkin_package(
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
-)
-
-catkin_install_python(PROGRAMS
-  src/read.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
