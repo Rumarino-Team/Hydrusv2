@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  vision_node:
+    build:
+      context: .
+
+    privileged: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./:/home/catkin_ws/src/vision_node
+
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: ["gpu"]
