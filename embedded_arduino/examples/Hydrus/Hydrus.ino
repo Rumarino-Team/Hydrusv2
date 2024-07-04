@@ -8,10 +8,7 @@
 void setup() 
 {
   initRosNode();
-  initializeGripper();
   initializeThrustersArduino();
-  // initializeCameraServo();
-  // initializePressureSensor();
 }
 
 void loop() 
