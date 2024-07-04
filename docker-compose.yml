@@ -1,19 +1,32 @@
 version: '3.8'
 
 services:
-  vision_node:
+  ros-master:
+    image: ros:noetic-ros-core
+    command: stdbuf -o L roscore
+    ports:
+      - "11311:11311"
+
+  # zed-camera:
+  #   image: stereolabs/zed:3.8
+  #   privileged: true
+  #   devices:
+  #     - /dev/video0:/dev/video0
+  #   environment:
+  #     - ROS_MASTER_URI=http://ros-master:11311
+  #   depends_on:
+  #     - ros-master
+  hydrus:
     build:
       context: .
-
     privileged: true
     stdin_open: true
     tty: true
-    volumes:
-      - ./:/home/catkin_ws/src/submarine
-    ports:
-      - "8000:8000"  # Maps host port 8000 to container port 8000
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: ["gpu"]
+    devices:
+      - "/dev/ttyACM0:/dev/ttyACM0"
+    environment:
+      - ROS_MASTER_URI=http://ros-master:11311
+      - ARDUINO_BOARD=arduino:avr:mega
+    depends_on:
+      - ros-master
+      # - zed-camera

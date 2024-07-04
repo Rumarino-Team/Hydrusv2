@@ -118,7 +118,7 @@ class SubController:
 
     # Handle the navigate request from the service
     def handle_navigate_request(self, req):
-        self.target_pose = req.target_pose  # Assuming 'a' is the destination waypoint
+        self.target_pose = req.target_pose  # Assuming 'a' is the destination target geometry_msgs/Pose
         return SetBoolResponse(True, "Navigation successful")
 
     def run(self):

@@ -2,7 +2,7 @@
 # constructing the others machines with their respective 
 # missions.
 
-from data import shared_data, initialize_subscribers
+from subscribers import shared_data, initialize_subscribers
 import smach
 import rospy
 from movement import UpdatePoseState, UpdatePoseToObjectState
