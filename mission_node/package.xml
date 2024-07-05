@@ -31,6 +31,6 @@
     <depend>topic_tools</depend>
 
     <!-- Adding detection_node_msgs as an exec dependency -->
-    <exec_depend>detection_node_msgs</exec_depend>
-    <build_depend>detection_node_msgs</build_depend>
+    <exec_depend>detector_node</exec_depend>
+    <build_depend>detector_node</build_depend>
 </package>
