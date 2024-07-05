@@ -42,12 +42,13 @@ def generate():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 
-@app.get("/video_feed")
+@app.get("/annotated_feed")
 def video_feed():
     return StreamingResponse(generate(), media_type='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
     rospy.init_node('video_stream_with_yolo_fastapi_node', anonymous=True)
+    
     rospy.Subscriber('/annotated_image', Image, annotated_image_callback)
     import uvicorn
     uvicorn.run(app, host='0.0.0.0', port=8000)

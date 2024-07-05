@@ -4,9 +4,8 @@ from sensor_msgs.msg import Imu, Image, CameraInfo
 from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32
-from zed_interfaces.msg import ObjectsStamped, RGBDSensors
-from nav_sensors.msg import DVL_MSG
 from rospy.exceptions import ROSException
+from detector_node.msg import Detection
 
 
 
@@ -25,10 +24,10 @@ class SharedData:
             "imu" : None,
             "pose" : None,
             "odom": None,
-            "path_odom": None
+            "path_map": None
         }
         self.detector = {
-            :
+            "box_detection" : None
         }
 
 
@@ -46,16 +45,16 @@ def zed_pose_callback(msg):
 def zed_odom_callback(msg):
     shared_data.zed_data['odom'] = msg
 
-def zed_path_odom_callback(msg):
-    shared_data.zed_data['path_odom'] = msg
+def zed_path_map_callback(msg):
+    shared_data.zed_data['path_map'] = msg
+
 #############################
-    # Calculated Pose
-#Either Simulation or  real IMU calculation or Zed_Camera pose
-def pose_callback(msg):
-    shared_data.submarine_pose = msg
+    # Detector Callbacks
 
-###############################
+def box_detection_callback(msg):
+    shared_data.detector["box_detection"] = msg
 
+##############################
 
 
 
@@ -69,11 +68,9 @@ def initialize_subscribers(topics_file):
     rospy.loginfo("YAML file read successfully.")
 
     # Initialize Subscribers
-    rospy.Subscriber(topics_info['zed_camera']['objects_stamped'], ObjectsStamped, zed_objects_callback)
-    rospy.Subscriber(topics_info['zed_camera']['camera_info'], CameraInfo, zed_camera_info_callback)
-
-    rospy.Subscriber(topics_info['submarine_pose']['pose'], Odometry, pose_callback)
-
+    rospy.Subscriber(topics_info['zed_camera']['pose'], PoseStamped, pose_callback)
+    rospy.Subscriber(topics_info['zed_camera']['path_map'], Path, zed_path_map_callback)
+    rospy.Subscriber(topics_info['detector']["box_detection"], Detection, detection_callback)
     #wait 5 seconds for the subscribers to get the first message
     rospy.sleep(5)
     # Check if any of the subscribed data is still None
@@ -82,7 +79,6 @@ def initialize_subscribers(topics_file):
         ('zed_odom', shared_data.zed_data['odom']),
         ('zed_path_odom', shared_data.zed_data['path_odom']),
         ('zed_path_map', shared_data.zed_data['path_map']),
-        ('submarine_pose', shared_data.submarine_pose),
     ]
  
     none_sources = [name for name, value in data_sources if value is None]

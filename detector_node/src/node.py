@@ -55,7 +55,7 @@ def handle_set_custom_classes(req):
 
     if current_detector is not None:
         current_detector.set_classes(classes)
-        current_detector.save(save_path)
+        # current_detector.save(save_path)
         rospy.loginfo(f"Custom classes set and model saved to {save_path}")
         return SetCustomClassesResponse(success=True)
     else:
@@ -185,7 +185,7 @@ def initialize_subscribers(topics_file):
 if __name__ == "__main__":
     rospy.init_node('yolo_detector')
 
-    pub = rospy.Publisher('detections', Detection, queue_size=10)
+    pub = rospy.Publisher('/detector/box_detection', Detection, queue_size=10)
     annotated_pub = rospy.Publisher('annotated_image', Image, queue_size=10)
 
     service_enable_detector = rospy.Service('enable_detector', EnableDetector, handle_enable_detector)

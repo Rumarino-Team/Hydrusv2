@@ -1,4 +1,4 @@
 <launch>
   <!-- Enable the recorded data rosbag from the zed camera -->
-  <node name="rosbag_play" pkg="rosbag" type="play" args="-l $(find detector_node)/zed_camera.bag" output="screen"/>
+  <node name="rosbag_play" pkg="rosbag" type="play" args="-l $(find detector_node)/../zed_camera.bag" output="screen"/>
 </launch>

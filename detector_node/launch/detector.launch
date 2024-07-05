@@ -1,6 +1,6 @@
 <launch>
     <!-- Load parameters from YAML file -->
-    <rosparam file="$(find detector_node)/params/config.yaml" command="load"/>
+    <rosparam file="$(find detector_node)/params/topics.yml" command="load"/>
     <!-- Start the node -->
-    <node name="detector node" pkg="detector" type="detector.py" output="screen"/>
+    <node name="detector" pkg="detector_node" type="node.py" output="screen"/>
 </launch>
