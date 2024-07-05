@@ -1,0 +1,20 @@
+zed_camera:
+  camera_info: "/zed2i/zed_node/rgb/camera_info"
+  image: "/zed2i/zed_node/rgb/image_rect_color"
+  depth_image: "/zed2i/zed_node/depth/depth_registered"
+  imu_pose: "/zed2i/zed_node/pose"
+  
+
+detector_node:
+  detection: "/detector/box_detection"
+
+
+controller_node : 
+  truster_1 : "/thrusters/1"
+  truster_2 : "/thrusters/2"
+  truster_3 : "/thrusters/3"
+  truster_4 : "/thrusters/4"
+  truster_5 : "/thrusters/5"
+  truster_6 : "/thrusters/6"
+  truster_7 : "/thrusters/7"
+  truster_8 : "/thrusters/8"

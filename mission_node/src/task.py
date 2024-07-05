@@ -6,6 +6,7 @@ from subscribers import shared_data, initialize_subscribers
 import smach
 import rospy
 from movement import UpdatePoseState, UpdatePoseToObjectState
+from edge_cases import movement_edge_cases, movement_edge_case_callback
 from geometry_msgs.msg import Pose, PoseStamped, Point
 import os
 """
@@ -40,7 +41,10 @@ class YourStateMachine(smach.StateMachine):
 
 
         with self:
-            smach.StateMachine.add('move_to_object', UpdatePoseState( edge_case_callback= lambda x: False), transitions={'success':'success', 'aborted':'failure', 'edge_case_detected':'failure'})
+            smach.StateMachine.add('Move_to_Buoy',
+                                    UpdatePoseToObjectState( edge_case_callback= movement_edge_cases,
+                                                            desired_object_name= "Gate"), 
+                                    transitions={'success':'success', 'aborted':'failure', 'edge_case_detected':'failure'})
 
 
 # Running the state machine

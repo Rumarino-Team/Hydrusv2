@@ -1,15 +1,10 @@
 import rospy
 import smach
-from geometry_msgs.msg import PoseWithCovariance 
 import random
-from std_msgs.msg import Time
 from geometry_msgs.msg import Point
 import math
 import tf
-from data import read_yaml_file
 import os
-from std_msgs.msg import String
-from nav_msgs.msg import Odometry
 from utils import quaternions_angle_difference, euler_to_quaternion
 
 class UpdatePoseState(smach.State):
@@ -133,12 +128,11 @@ class UpdatePoseToObjectState(UpdatePoseState):
 
     def execute(self, userdata):
         shared_data = userdata.shared_data
-        for object in  shared_data.zed_data["ObjectsStamped"]:
+        for object in  shared_data.detector["ObjectsStamped"]:
             if self.desired_object_name == object.label:
                 self.object_data = object
 
         if self.object_data:
-            object_waypoint = self.zedObject2Waypoint()
             self.waypoints.append(object_waypoint)
 
         else:

@@ -22,6 +22,12 @@ services:
     privileged: true
     stdin_open: true
     tty: true
+
+
+    volumes:
+      - ./:/home/catkin_ws/src
+    ports:
+      - "8000:8000"
     devices:
       - "/dev/ttyACM0:/dev/ttyACM0"
     environment:

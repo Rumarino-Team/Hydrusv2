@@ -1,4 +1,3 @@
-
 <?xml version="1.0"?>
 <package format="2">
     <name>mission_node</name>
@@ -19,7 +18,7 @@
     <depend>dynamic_reconfigure</depend>
     <depend>diagnostic_updater</depend>
     <depend>geometry_msgs</depend>
-    <depend>visualization_msgs</depend>    
+    <depend>visualization_msgs</depend>
     <depend>message_runtime</depend>
     <depend>rospy</depend>
     <depend>smach</depend>
@@ -34,5 +33,4 @@
     <!-- Adding detection_node_msgs as an exec dependency -->
     <exec_depend>detection_node_msgs</exec_depend>
     <build_depend>detection_node_msgs</build_depend>
-
 </package>

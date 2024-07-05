@@ -11,31 +11,40 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 ENV DEBIAN_FRONTEND=noninteractive
-#mission Node Dependencies
+
+# Mission Node Dependencies
 RUN apt update && apt install -y \
     ros-noetic-smach-ros \
     ros-noetic-executive-smach \
     ros-noetic-smach-viewer 
 
-
-
+# ROS setup
+RUN /bin/bash -c 'source /opt/ros/noetic/setup.bash && \
+    mkdir -p /home/catkin_ws/src && \
+    cd /home/catkin_ws/ && \
+    catkin_make && \
+    source devel/setup.bash'
+    
 # Embedded Node Dependencies
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
        gcc \
        curl \
        git  && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Arduino CLI and libraries
 WORKDIR /usr/local/
 RUN curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh && \
     arduino-cli core update-index && \
     arduino-cli core install arduino:avr
 RUN arduino-cli lib install "Rosserial Arduino Library@0.7.9" && \
     sed -i '/#include "ros\/node_handle.h"/a #include "geometry_msgs/Vector3.h"' /root/Arduino/libraries/Rosserial_Arduino_Library/src/ros.h && \
-    arduino-cli lib install "Servo@1.2.1" 
+    arduino-cli lib install "Servo@1.2.1" && \
+    arduino-cli lib install "BlueRobotics MS5837 Library@1.1.1"
+
+# Copy embedded Arduino code
 WORKDIR /root/Arduino/libraries
 COPY ./embedded_arduino ./sensor_actuator_pkg
-    
-
 
 # Install additional Python packages using pip
 RUN pip3 install opencv-python matplotlib
@@ -43,19 +52,22 @@ RUN pip3 install opencv-python matplotlib
 # Set the working directory
 WORKDIR /home/catkin_ws
 # Copy the rest of your application code
-COPY . /home/catkin_ws
+COPY . /home/catkin_ws/src
 
 # Source ROS setup.bash script
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 RUN /bin/bash -c "source /root/.bashrc"
 
+# Install rosdep and update dependencies
+RUN apt-get update && apt-get install -y python3-rosdep && \
+    rosdep init && rosdep update
+
 # Install any ROS dependencies
-RUN apt-get update && rosdep update
 RUN rosdep install --from-paths src --ignore-src -r -y
 
-# Build the catkin workspace
-RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
+# # Build the catkin workspace
+# RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
 
-# # Set the entrypoint
+# Set the entrypoint
 # ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]
