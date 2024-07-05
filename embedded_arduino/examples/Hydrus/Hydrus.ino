@@ -3,7 +3,7 @@
 # pragma once
 #include <Arduino.h>
 
-# include <rosserial_hydrus_node.h>
+# include <rosserial_embedded_node.h>
 
 void setup() 
 {

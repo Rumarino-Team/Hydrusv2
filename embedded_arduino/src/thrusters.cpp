@@ -73,57 +73,57 @@ void initializeThrustersArduino(void)
 //  Callbacks
 
 // Setter for the thruster motor PWM values
-void setThruster_1(const geometry_msgs::Vector3& thusterVector)
+void setThruster_1(const std_msgs::UInt16& thrusterValue)
 { 
     // The Vector ffrom the parameter is tecnically a scalar inside 
     // a 3d vector. Don't ask me why it is like that. uuv_simulator
     // implement it like that The y and z parameter of the vector is 
     // always 0.
     if(init_motors){
-    motors[0].writeMicroseconds(thusterVector.x);
+    motors[0].writeMicroseconds(thrusterValue);
     
 }
 }
-void setThruster_2(const geometry_msgs::Vector3& thusterVector)
+void setThruster_2(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[1].writeMicroseconds(thusterVector.x);
+    motors[1].writeMicroseconds(thrusterValue);
     }
 }
 
-void setThruster_3(const geometry_msgs::Vector3& thusterVector)
+void setThruster_3(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[2].writeMicroseconds(thusterVector.x);
+    motors[2].writeMicroseconds(thrusterValue);
     }
 }
-void setThruster_4(const geometry_msgs::Vector3& thusterVector)
+void setThruster_4(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[3].writeMicroseconds(thusterVector.x);
+    motors[3].writeMicroseconds(thrusterValue);
     }
 }
-void setThruster_5(const geometry_msgs::Vector3& thusterVector)
+void setThruster_5(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[4].writeMicroseconds(thusterVector.x);
+    motors[4].writeMicroseconds(thrusterValue);
     }
 }
-void setThruster_6(const geometry_msgs::Vector3& thusterVector)
+void setThruster_6(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[5].writeMicroseconds(thusterVector.x);
+    motors[5].writeMicroseconds(thrusterValue);
     }
 }
-void setThruster_7(const geometry_msgs::Vector3& thusterVector)
+void setThruster_7(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[6].writeMicroseconds(thusterVector.x);
+    motors[6].writeMicroseconds(thrusterValue);
     }
 }
-void setThruster_8(const geometry_msgs::Vector3& thusterVector)
+void setThruster_8(const std_msgs::UInt16& thrusterValue)
 { 
     if(init_motors){
-    motors[7].writeMicroseconds(thusterVector.x);
+    motors[7].writeMicroseconds(thrusterValue);
     }
 }
