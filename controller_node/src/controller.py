@@ -1,3 +1,4 @@
+import math
 import yaml
 import rospy
 from std_msgs.msg import Float64
@@ -8,9 +9,10 @@ from zed_interfaces.msg import ObjectsStamped
 #!/usr/bin/env python
 
 DEPTH_SPEED = 1
-DEPTH_MOTORS_ID = [1, 2, 3, 4]
+DEPTH_MOTORS_ID = [1, 2, 3, 4] # front left, front right, back left, back right
 ROTATION_SPEED = 1
-LINEAR_ROTATION_MOTORS_ID = [5, 6, 7, 8]
+FRONT_MOTORS_ID = [5, 6] # left, right
+BACK_MOTORS_ID = [7, 8] # left, right
 LINEAR_SPEED = 1
 DELTA = 0.01
 
@@ -84,37 +86,52 @@ class SubController:
     def calculate_thruster_values(self, current_pose, target_pose):
         if self.moving[0]:# Go up or down
             if (current_pose.position.z - target_pose.position.z) > DELTA:
-                for i in range(0, len(DEPTH_MOTORS_ID)):
-                    self.thruster_values[DEPTH_MOTORS_ID[i]] = DEPTH_SPEED
+                for motor_id in DEPTH_MOTORS_ID:
+                    self.thruster_values[motor_id] = DEPTH_SPEED
             elif (current_pose.position.z - target_pose.position.z) < DELTA:
-                for i in range(0, len(DEPTH_MOTORS_ID)):
-                    self.thruster_values[DEPTH_MOTORS_ID[i]] = -DEPTH_SPEED
+                for motor_id in DEPTH_MOTORS_ID:
+                    self.thruster_values[motor_id] = -DEPTH_SPEED
             else:
-                self.moving[0] = False
+                self.moving = [False, True, False]
         elif self.moving[1]: # Rotate
-            if (current_pose.orientation.z - target_pose.orientation.z) > DELTA:
-                for i in range(0, len(LINEAR_ROTATION_MOTORS_ID) // 2):
-                    self.thruster_values[LINEAR_ROTATION_MOTORS_ID[i]] = ROTATION_SPEED
-                for i in range(len(LINEAR_ROTATION_MOTORS_ID) // 2, len(LINEAR_ROTATION_MOTORS_ID)):
-                    self.thruster_values[LINEAR_ROTATION_MOTORS_ID[i]] = -ROTATION_SPEED
-            elif (current_pose.orientation.z - target_pose.orientation.z) < DELTA:
-                for i in range(0, len(LINEAR_ROTATION_MOTORS_ID) // 2):
-                    self.thruster_values[LINEAR_ROTATION_MOTORS_ID[i]] = -ROTATION_SPEED
-                for i in range(len(LINEAR_ROTATION_MOTORS_ID) // 2, len(LINEAR_ROTATION_MOTORS_ID)):
-                    self.thruster_values[LINEAR_ROTATION_MOTORS_ID[i]] = ROTATION_SPEED
+            # get angle between current and target orientation
+            current_yaw = self.quaternions_angle_difference(current_pose.position)
+            target_yaw = self.quaternions_angle_difference(target_pose.position)
+            angle_diff = target_yaw - current_yaw
+
+            if angle_diff > DELTA:
+                self.thruster_values[FRONT_MOTORS_ID[0]] = -ROTATION_SPEED
+                self.thruster_values[FRONT_MOTORS_ID[1]] = ROTATION_SPEED
+                self.thruster_values[BACK_MOTORS_ID[0]] = -ROTATION_SPEED
+                self.thruster_values[BACK_MOTORS_ID[1]] = ROTATION_SPEED
+            elif angle_diff < -DELTA:
+                self.thruster_values[FRONT_MOTORS_ID[0]] = ROTATION_SPEED
+                self.thruster_values[FRONT_MOTORS_ID[1]] = -ROTATION_SPEED
+                self.thruster_values[BACK_MOTORS_ID[0]] = ROTATION_SPEED
+                self.thruster_values[BACK_MOTORS_ID[1]] = -ROTATION_SPEED
             else: 
-                self.moving[1] = False
+                self.moving = [False, False, True]
         elif self.moving[2]: # Move forward or backward
             if (current_pose.position.x - target_pose.position.x) > DELTA:
-                for i in range(0, len(LINEAR_ROTATION_MOTORS_ID)):
-                    self.thruster_values[LINEAR_ROTATION_MOTORS_ID[i]] = LINEAR_SPEED
+                for motor_id in FRONT_MOTORS_ID:
+                    self.thruster_values[motor_id] = LINEAR_SPEED
+                for motor_id in BACK_MOTORS_ID:
+                    self.thruster_values[motor_id] = LINEAR_SPEED
             elif (current_pose.position.x - target_pose.position.x) < DELTA:
-                for i in range(0, len(LINEAR_ROTATION_MOTORS_ID)):
-                    self.thruster_values[LINEAR_ROTATION_MOTORS_ID[i]] = -LINEAR_SPEED
+                for motor_id in FRONT_MOTORS_ID:
+                    self.thruster_values[motor_id] = -LINEAR_SPEED
+                for motor_id in BACK_MOTORS_ID:
+                    self.thruster_values[motor_id] = -LINEAR_SPEED
             else: 
-                self.moving[2] = False
+                self.moving = [True, False, False]
         else:
             self.moving = [True, False, False]
+
+    def quaternions_angle_difference(q1, q2):
+        dot = q1.x*q2.x + q1.y*q2.y + q1.z*q2.z + q1.w*q2.w
+
+        angle_difference = 2 * math.acos(dot)
+        return angle_difference
 
     # Handle the navigate request from the service
     def handle_navigate_request(self, req):
