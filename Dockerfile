@@ -42,32 +42,34 @@ RUN arduino-cli lib install "Rosserial Arduino Library@0.7.9" && \
     arduino-cli lib install "Servo@1.2.1" && \
     arduino-cli lib install "BlueRobotics MS5837 Library@1.1.1"
 
-# Copy embedded Arduino code
-WORKDIR /root/Arduino/libraries
-COPY ./embedded_arduino ./sensor_actuator_pkg
-
 # Install additional Python packages using pip
 RUN pip3 install opencv-python matplotlib
-
-# Set the working directory
-WORKDIR /home/catkin_ws
-# Copy the rest of your application code
-COPY . /home/catkin_ws/src
 
 # Source ROS setup.bash script
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
 RUN /bin/bash -c "source /root/.bashrc"
 
 # Install rosdep and update dependencies
-RUN apt-get update && apt-get install -y python3-rosdep && \
+RUN apt-get update && apt-get install -y python3-rosdep ros-noetic-rosserial-arduino && \
     rosdep init && rosdep update
 
 # Install any ROS dependencies
 RUN rosdep install --from-paths src --ignore-src -r -y
 
+# Copy embedded Arduino code
+WORKDIR /root/Arduino/libraries
+COPY ./embedded_arduino ./sensor_actuator_pkg
+
+# Set the working directory
+WORKDIR /home/catkin_ws
+# Copy the rest of your application code
+COPY . /home/catkin_ws/src
+
+COPY ./ros-entrypoint.sh /home/catkin_ws/ros-entrypoint.sh
+RUN chmod +x /home/catkin_ws/ros-entrypoint.sh
+
 # # Build the catkin workspace
 # RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && catkin_make"
 
 # Set the entrypoint
-# ENTRYPOINT ["/ros_entrypoint.sh"]
-CMD ["bash"]
+ENTRYPOINT ["./ros-entrypoint.sh"]
