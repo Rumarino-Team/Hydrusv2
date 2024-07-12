@@ -1,4 +1,4 @@
-geometry_msgs/Pose target_pose
+geometry_msgs/Point target_point    
 
 ---
 bool success

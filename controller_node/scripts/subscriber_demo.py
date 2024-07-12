@@ -8,14 +8,14 @@ class SubListener:
         rospy.init_node('sub_listener', anonymous=True)
 
         # Subscribers to the same topics published by SubController
-        rospy.Subscriber('/thrusters/1', Vector3, self.thruster_callback_1)
-        rospy.Subscriber('/thrusters/2', Vector3, self.thruster_callback_2)
-        rospy.Subscriber('/thrusters/3', Vector3, self.thruster_callback_3)
-        rospy.Subscriber('/thrusters/4', Vector3, self.thruster_callback_4)
-        rospy.Subscriber('/thrusters/5', Vector3, self.thruster_callback_5)
-        rospy.Subscriber('/thrusters/6', Vector3, self.thruster_callback_6)
-        rospy.Subscriber('/thrusters/7', Vector3, self.thruster_callback_7)
-        rospy.Subscriber('/thrusters/8', Vector3, self.thruster_callback_8)
+        rospy.Subscriber('/hydrus/thrusters/1', Vector3, self.thruster_callback_1)
+        rospy.Subscriber('/hydrus/thrusters/2', Vector3, self.thruster_callback_2)
+        rospy.Subscriber('/hydrus/thrusters/3', Vector3, self.thruster_callback_3)
+        rospy.Subscriber('/hydrus/thrusters/4', Vector3, self.thruster_callback_4)
+        rospy.Subscriber('/hydrus/thrusters/5', Vector3, self.thruster_callback_5)
+        rospy.Subscriber('/hydrus/thrusters/6', Vector3, self.thruster_callback_6)
+        rospy.Subscriber('/hydrus/thrusters/7', Vector3, self.thruster_callback_7)
+        rospy.Subscriber('/hydrus/thrusters/8', Vector3, self.thruster_callback_8)
         
         rospy.spin()  # Keep the subscriber running
 

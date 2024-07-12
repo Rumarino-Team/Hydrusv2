@@ -16,11 +16,11 @@ detector_node:
 
 
 controller_node : 
-  truster_1 : "/thrusters/1"
-  truster_2 : "/thrusters/2"
-  truster_3 : "/thrusters/3"
-  truster_4 : "/thrusters/4"
-  truster_5 : "/thrusters/5"
-  truster_6 : "/thrusters/6"
-  truster_7 : "/thrusters/7"
-  truster_8 : "/thrusters/8"
+  truster_1 : "/hydrus/thrusters/1"
+  truster_2 : "/hydrus/thrusters/2"
+  truster_3 : "/hydrus/thrusters/3"
+  truster_4 : "/hydrus/thrusters/4"
+  truster_5 : "/hydrus/thrusters/5"
+  truster_6 : "/hydrus/thrusters/6"
+  truster_7 : "/hydrus/thrusters/7"
+  truster_8 : "/hydrus/thrusters/8"

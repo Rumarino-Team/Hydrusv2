@@ -1,0 +1,11 @@
+<launch>
+  <!-- Launch the controller node -->
+  <include file="$(find hydrus)/launch/hydrus_control.launch" />
+    
+  <!-- Launch the mission node -->
+  <include file="$(find hydrus)/launch/hydrus_mission.launch" />
+  
+  <!-- Include other launch files as needed -->
+  <!-- <include file="$(find detector_node)/launch/detector.launch" /> -->
+  <!-- <include file="$(find embedded_arduino)/launch/arduino.launch" /> -->
+</launch>
