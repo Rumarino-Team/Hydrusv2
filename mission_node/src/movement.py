@@ -3,7 +3,6 @@ import smach
 import random
 from geometry_msgs.msg import Point
 import math
-import tf
 import os
 from utils import quaternions_angle_difference, euler_to_quaternion
 

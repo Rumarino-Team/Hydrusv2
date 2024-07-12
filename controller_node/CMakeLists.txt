@@ -11,17 +11,26 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   sensor_msgs
   std_srvs
+  message_generation  # Ensure message_generation is included
+)
+
+## Generate services in the 'srv' folder
+add_service_files(
+  FILES
+  NavigateToWaypoint.srv
+)
+
+## Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs sensor_msgs std_srvs
+  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs sensor_msgs std_srvs message_runtime
 )
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
-)
-
-install(PROGRAMS
-  scripts/submarine_controller.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

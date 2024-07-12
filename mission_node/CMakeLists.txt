@@ -10,8 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   sensor_msgs
   stereo_msgs
-  dynamic_reconfigure
-  diagnostic_updater
   geometry_msgs
   visualization_msgs
   message_runtime

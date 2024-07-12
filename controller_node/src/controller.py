@@ -1,18 +1,17 @@
+#!/usr/bin/env python
+
 import math
 import yaml
 import rospy
 from std_msgs.msg import Float64
-from std_srvs.srv import SetBool, SetBoolResponse  # Assuming a simple success flag response
-from geometry_msgs.msg import Vector3
-from sensor_msgs.msg import PoseStamped, Odometry
-from zed_interfaces.msg import ObjectsStamped
-#!/usr/bin/env python
+from geometry_msgs.msg import Vector3, PoseStamped
+from controller_node.srv import NavigateToWaypoint, NavigateToWaypointResponse
 
 DEPTH_SPEED = 1
-DEPTH_MOTORS_ID = [1, 2, 3, 4] # front left, front right, back left, back right
+DEPTH_MOTORS_ID = [1, 2, 3, 4]  # front left, front right, back left, back right
 ROTATION_SPEED = 1
-FRONT_MOTORS_ID = [5, 6] # left, right
-BACK_MOTORS_ID = [7, 8] # left, right
+FRONT_MOTORS_ID = [5, 6]  # left, right
+BACK_MOTORS_ID = [7, 8]  # left, right
 LINEAR_SPEED = 1
 DELTA = 0.01
 
@@ -24,35 +23,29 @@ def read_yaml_file(file_path):
         rospy.logerr("Failed to read YAML file: %s", str(e))
         return None
 
-# TODO: Finish movement logic
 class SubController:
     def __init__(self):
         rospy.init_node('subcontroller', anonymous=True)
 
-        self.initialize_subscribers('topics.yaml')
+        self.initialize_subscribers('../../configs/topics.yml')
 
-        self.service = rospy.Service('navigate_to_waypoint', SetBool, self.handle_navigate_request)
+        self.service = rospy.Service('navigate_to_waypoint', NavigateToWaypoint, self.handle_navigate_request)
         self.target_pose = None
         self.current_pose = None
-        self.objects = []
-        self.thrusters_pubishers = []
+        self.detection = []
+        self.thrusters_publishers = []
         self.thruster_values = [0] * 8
-        self.moving = [False, False, False] # [depth, rotation, linear]
+        self.moving = [False, False, False]  # [depth, rotation, linear]
 
-        for i in range(1,9):
+        for i in range(1, 9):
             self.thrusters_publishers.append(rospy.Publisher('/thrusters/' + str(i) + '/', Vector3, queue_size=10))
 
         self.rate = rospy.Rate(10)  # 10 Hz
         while not rospy.is_shutdown():
             self.rate.sleep()
             if self.target_pose is not None:
-                # TODO: verify how often the callback is run, may have to change the rate
                 self.move_submarine(self.current_pose, self.target_pose)
-            else:
-                rospy.loginfo("Target pose is not set. Waiting for a target pose.")
 
-        
-    # Get topics from a YAML file then initialize subscribers
     def initialize_subscribers(self, topics_file):
         topics_info = read_yaml_file(topics_file)
         if topics_info is None:
@@ -61,30 +54,22 @@ class SubController:
 
         rospy.loginfo("YAML file read successfully.")
 
-        # Initialize Subscribers
         rospy.Subscriber(topics_info['zed_camera']['pose'], PoseStamped, self.zed_pose_callback)
-        rospy.Subscriber(topics_info['zed_camera']['odom'], Odometry, self.zed_odom_callback)
-        rospy.Subscriber(topics_info['zed_camera']['objects_stamped'], ObjectsStamped, self.zed_objects_callback)
-        
-    # Callback functions for the subscribers
+
     def zed_pose_callback(self, msg):
         self.current_pose = msg.pose
-        
-    def zed_odom_callback(self, msg):
-        self.current_pose = msg.pose
-        
-    def zed_objects_callback(self, msg):
-        self.objects = msg.objects
 
-    # Move the submarine to the target pose
+    def detection_callback(self, msg):
+        self.detection = msg
+
     def move_submarine(self, current_pose, target_pose):
         self.calculate_thruster_values(current_pose, target_pose)
-        for i in range(0, len(self.thruster_values)):
+        for i in range(len(self.thruster_values)):
             self.thrusters_publishers[i].publish(self.thruster_values[i])
         self.rate.sleep()
 
     def calculate_thruster_values(self, current_pose, target_pose):
-        if self.moving[0]:# Go up or down
+        if self.moving[0]:  # Go up or down
             if (current_pose.position.z - target_pose.position.z) > DELTA:
                 for motor_id in DEPTH_MOTORS_ID:
                     self.thruster_values[motor_id] = DEPTH_SPEED
@@ -93,8 +78,7 @@ class SubController:
                     self.thruster_values[motor_id] = -DEPTH_SPEED
             else:
                 self.moving = [False, True, False]
-        elif self.moving[1]: # Rotate
-            # get angle between current and target orientation
+        elif self.moving[1]:  # Rotate
             current_yaw = self.quaternions_angle_difference(current_pose.position)
             target_yaw = self.quaternions_angle_difference(target_pose.position)
             angle_diff = target_yaw - current_yaw
@@ -109,9 +93,9 @@ class SubController:
                 self.thruster_values[FRONT_MOTORS_ID[1]] = -ROTATION_SPEED
                 self.thruster_values[BACK_MOTORS_ID[0]] = ROTATION_SPEED
                 self.thruster_values[BACK_MOTORS_ID[1]] = -ROTATION_SPEED
-            else: 
+            else:
                 self.moving = [False, False, True]
-        elif self.moving[2]: # Move forward or backward
+        elif self.moving[2]:  # Move forward or backward
             if (current_pose.position.x - target_pose.position.x) > DELTA:
                 for motor_id in FRONT_MOTORS_ID:
                     self.thruster_values[motor_id] = LINEAR_SPEED
@@ -122,7 +106,7 @@ class SubController:
                     self.thruster_values[motor_id] = -LINEAR_SPEED
                 for motor_id in BACK_MOTORS_ID:
                     self.thruster_values[motor_id] = -LINEAR_SPEED
-            else: 
+            else:
                 self.moving = [True, False, False]
         else:
             self.moving = [True, False, False]
@@ -133,10 +117,9 @@ class SubController:
         angle_difference = 2 * math.acos(dot)
         return angle_difference
 
-    # Handle the navigate request from the service
     def handle_navigate_request(self, req):
-        self.target_pose = req.target_pose  # Assuming 'a' is the destination target geometry_msgs/Pose
-        return SetBoolResponse(True, "Navigation successful")
+        self.target_pose = req.target_pose
+        return NavigateToWaypointResponse(success=True)
 
     def run(self):
         rospy.spin()  # Keep the service running
