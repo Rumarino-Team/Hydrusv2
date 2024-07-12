@@ -1,0 +1,6 @@
+<launch>
+    <!-- Load parameters from YAML file -->
+    <rosparam file="$(find detector_node)/params/topics.yml" command="load"/>
+    <!-- Start the node -->
+    <node name="controller" pkg="controller_node" type="controller.py" output="screen"/>
+</launch>

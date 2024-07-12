@@ -3,17 +3,8 @@
 import math
 import yaml
 import rospy
-from std_msgs.msg import Float64
 from geometry_msgs.msg import Vector3, PoseStamped
-from controller_node.srv import NavigateToWaypoint, NavigateToWaypointResponse
-
-DEPTH_SPEED = 1
-DEPTH_MOTORS_ID = [1, 2, 3, 4]  # front left, front right, back left, back right
-ROTATION_SPEED = 1
-FRONT_MOTORS_ID = [5, 6]  # left, right
-BACK_MOTORS_ID = [7, 8]  # left, right
-LINEAR_SPEED = 1
-DELTA = 0.01
+from controller_node.srv import NavigateToWaypoint, NavigateToWaypointResponse, SetParameters, SetParametersResponse
 
 def read_yaml_file(file_path):
     try:
@@ -27,18 +18,35 @@ class SubController:
     def __init__(self):
         rospy.init_node('subcontroller', anonymous=True)
 
+        self.DEPTH_SPEED = 1
+        self.ROTATION_SPEED = 1
+        self.LINEAR_SPEED = 1
+        self.DELTA = 0.01
+
+        self.speed_translation = {
+            1: 1550,
+            2: 1600,
+            3: 1650,
+        }
+
+        self.DEPTH_MOTORS_ID = [0, 1, 2, 3]  # front left, front right, back left, back right
+        self.FRONT_MOTORS_ID = [4, 5]  # left, right
+        self.BACK_MOTORS_ID = [6, 7]  # left, right
+
         self.initialize_subscribers('../../configs/topics.yml')
 
-        self.service = rospy.Service('navigate_to_waypoint', NavigateToWaypoint, self.handle_navigate_request)
+        self.navigate_service = rospy.Service('navigate_to_waypoint', NavigateToWaypoint, self.handle_navigate_request)
+        self.set_parameters_service = rospy.Service('set_parameters', SetParameters, self.handle_set_parameters)
+
         self.target_pose = None
         self.current_pose = None
         self.detection = []
         self.thrusters_publishers = []
-        self.thruster_values = [0] * 8
+        self.thruster_values = [Vector3() for _ in range(8)]
         self.moving = [False, False, False]  # [depth, rotation, linear]
 
-        for i in range(1, 9):
-            self.thrusters_publishers.append(rospy.Publisher('/thrusters/' + str(i) + '/', Vector3, queue_size=10))
+        for i in range(8):
+            self.thrusters_publishers.append(rospy.Publisher('/thrusters/' + str(i+1), Vector3, queue_size=10))
 
         self.rate = rospy.Rate(10)  # 10 Hz
         while not rospy.is_shutdown():
@@ -70,12 +78,12 @@ class SubController:
 
     def calculate_thruster_values(self, current_pose, target_pose):
         if self.moving[0]:  # Go up or down
-            if (current_pose.position.z - target_pose.position.z) > DELTA:
-                for motor_id in DEPTH_MOTORS_ID:
-                    self.thruster_values[motor_id] = DEPTH_SPEED
-            elif (current_pose.position.z - target_pose.position.z) < DELTA:
-                for motor_id in DEPTH_MOTORS_ID:
-                    self.thruster_values[motor_id] = -DEPTH_SPEED
+            if (current_pose.position.z - target_pose.position.z) > self.DELTA:
+                for motor_id in self.DEPTH_MOTORS_ID:
+                    self.thruster_values[motor_id] = Vector3(x=self.speed_translation[self.DEPTH_SPEED], y=0, z=0)
+            elif (current_pose.position.z - target_pose.position.z) < self.DELTA:
+                for motor_id in self.DEPTH_MOTORS_ID:
+                    self.thruster_values[motor_id] = Vector3(x=-self.speed_translation[self.DEPTH_SPEED], y=0, z=0)
             else:
                 self.moving = [False, True, False]
         elif self.moving[1]:  # Rotate
@@ -83,43 +91,49 @@ class SubController:
             target_yaw = self.quaternions_angle_difference(target_pose.position)
             angle_diff = target_yaw - current_yaw
 
-            if angle_diff > DELTA:
-                self.thruster_values[FRONT_MOTORS_ID[0]] = -ROTATION_SPEED
-                self.thruster_values[FRONT_MOTORS_ID[1]] = ROTATION_SPEED
-                self.thruster_values[BACK_MOTORS_ID[0]] = -ROTATION_SPEED
-                self.thruster_values[BACK_MOTORS_ID[1]] = ROTATION_SPEED
-            elif angle_diff < -DELTA:
-                self.thruster_values[FRONT_MOTORS_ID[0]] = ROTATION_SPEED
-                self.thruster_values[FRONT_MOTORS_ID[1]] = -ROTATION_SPEED
-                self.thruster_values[BACK_MOTORS_ID[0]] = ROTATION_SPEED
-                self.thruster_values[BACK_MOTORS_ID[1]] = -ROTATION_SPEED
+            if angle_diff > self.DELTA:
+                self.thruster_values[self.FRONT_MOTORS_ID[0]] = Vector3(x=-self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+                self.thruster_values[self.FRONT_MOTORS_ID[1]] = Vector3(x=self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+                self.thruster_values[self.BACK_MOTORS_ID[0]] = Vector3(x=-self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+                self.thruster_values[self.BACK_MOTORS_ID[1]] = Vector3(x=self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+            elif angle_diff < -self.DELTA:
+                self.thruster_values[self.FRONT_MOTORS_ID[0]] = Vector3(x=self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+                self.thruster_values[self.FRONT_MOTORS_ID[1]] = Vector3(x=-self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+                self.thruster_values[self.BACK_MOTORS_ID[0]] = Vector3(x=self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
+                self.thruster_values[self.BACK_MOTORS_ID[1]] = Vector3(x=-self.speed_translation[self.ROTATION_SPEED], y=0, z=0)
             else:
                 self.moving = [False, False, True]
         elif self.moving[2]:  # Move forward or backward
-            if (current_pose.position.x - target_pose.position.x) > DELTA:
-                for motor_id in FRONT_MOTORS_ID:
-                    self.thruster_values[motor_id] = LINEAR_SPEED
-                for motor_id in BACK_MOTORS_ID:
-                    self.thruster_values[motor_id] = LINEAR_SPEED
-            elif (current_pose.position.x - target_pose.position.x) < DELTA:
-                for motor_id in FRONT_MOTORS_ID:
-                    self.thruster_values[motor_id] = -LINEAR_SPEED
-                for motor_id in BACK_MOTORS_ID:
-                    self.thruster_values[motor_id] = -LINEAR_SPEED
+            if (current_pose.position.x - target_pose.position.x) > self.DELTA:
+                for motor_id in self.FRONT_MOTORS_ID:
+                    self.thruster_values[motor_id] = Vector3(x=self.speed_translation[self.LINEAR_SPEED], y=0, z=0)
+                for motor_id in self.BACK_MOTORS_ID:
+                    self.thruster_values[motor_id] = Vector3(x=self.speed_translation[self.LINEAR_SPEED], y=0, z=0)
+            elif (current_pose.position.x - target_pose.position.x) < self.DELTA:
+                for motor_id in self.FRONT_MOTORS_ID:
+                    self.thruster_values[motor_id] = Vector3(x=-self.speed_translation[self.LINEAR_SPEED], y=0, z=0)
+                for motor_id in self.BACK_MOTORS_ID:
+                    self.thruster_values[motor_id] = Vector3(x=-self.speed_translation[self.LINEAR_SPEED], y=0, z=0)
             else:
                 self.moving = [True, False, False]
         else:
             self.moving = [True, False, False]
 
     def quaternions_angle_difference(q1, q2):
-        dot = q1.x*q2.x + q1.y*q2.y + q1.z*q2.z + q1.w*q2.w
-
+        dot = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w
         angle_difference = 2 * math.acos(dot)
         return angle_difference
 
     def handle_navigate_request(self, req):
         self.target_pose = req.target_pose
         return NavigateToWaypointResponse(success=True)
+
+    def handle_set_parameters(self, req):
+        self.DEPTH_SPEED = req.depth_speed
+        self.ROTATION_SPEED = req.rotation_speed
+        self.LINEAR_SPEED = req.linear_speed
+        self.DELTA = req.delta
+        return SetParametersResponse(success=True)
 
     def run(self):
         rospy.spin()  # Keep the service running

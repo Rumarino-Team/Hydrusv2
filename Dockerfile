@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     ros-noetic-cv-bridge \
     ros-noetic-tf \
+    ros-noetic-tf2-geometry-msgs\
     && rm -rf /var/lib/apt/lists/*
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -63,7 +64,7 @@ COPY ./embedded_arduino ./sensor_actuator_pkg
 # Set the working directory
 WORKDIR /home/catkin_ws
 # Copy the rest of your application code
-COPY . /home/catkin_ws/src
+COPY . /home/catkin_ws/src/hydrus
 
 COPY ./ros-entrypoint.sh /home/catkin_ws/ros-entrypoint.sh
 RUN chmod +x /home/catkin_ws/ros-entrypoint.sh

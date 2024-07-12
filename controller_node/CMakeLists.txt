@@ -11,13 +11,14 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   sensor_msgs
   std_srvs
-  message_generation  # Ensure message_generation is included
+  message_generation
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
   NavigateToWaypoint.srv
+  SetParameters.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
