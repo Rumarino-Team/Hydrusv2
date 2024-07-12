@@ -1,6 +1,6 @@
 
 #include "ros_embedded_node.h"
-#include "devices/devices.h"
+#include "devices.h"
 
 ros::NodeHandle nh;
 

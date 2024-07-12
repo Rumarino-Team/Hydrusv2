@@ -22,10 +22,6 @@ services:
     privileged: true
     stdin_open: true
     tty: true
-
-
-    volumes:
-      - ./:/home/catkin_ws/src/hydrusv2
     ports:
       - "8000:8000"
     devices:
