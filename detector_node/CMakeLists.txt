@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Detection.msg
+  Detections.msg  # Add the new message file
 )
 
 add_service_files(

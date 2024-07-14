@@ -6,6 +6,9 @@ source devel/setup.bash
 roscore &
 sleep 2
 
+
+#Give Permissions to Nodes to execute
+
 # Compile the Arduino project
 cd /root/Arduino/libraries/sensor_actuator_pkg/examples/Hydrus
 arduino-cli compile --fqbn $ARDUINO_BOARD Hydrus.ino

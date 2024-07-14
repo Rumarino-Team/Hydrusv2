@@ -5,7 +5,7 @@ from nav_msgs.msg import Odometry, Path
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32
 from rospy.exceptions import ROSException
-from detector_node.msg import Detection
+from detector_node.msg import Detections
 
 
 
@@ -68,9 +68,9 @@ def initialize_subscribers(topics_file):
     rospy.loginfo("YAML file read successfully.")
 
     # Initialize Subscribers
-    rospy.Subscriber(topics_info['zed_camera']['pose'], PoseStamped, pose_callback)
+    rospy.Subscriber(topics_info['zed_camera']['pose'], PoseStamped, zed_pose_callback)
     rospy.Subscriber(topics_info['zed_camera']['path_map'], Path, zed_path_map_callback)
-    rospy.Subscriber(topics_info['detector']["box_detection"], Detection, detection_callback)
+    rospy.Subscriber(topics_info['detector']["box_detection"], Detections, box_detection_callback)
     #wait 5 seconds for the subscribers to get the first message
     rospy.sleep(5)
     # Check if any of the subscribed data is still None

@@ -2,7 +2,6 @@
 # constructing the others machines with their respective 
 # missions.
 
-from subscribers import shared_data, initialize_subscribers
 import smach
 import rospy
 from movement import UpdatePoseState, UpdatePoseToObjectState
@@ -28,17 +27,15 @@ class Foo(smach.State):
 
 
 class YourStateMachine(smach.StateMachine):
-    def __init__(self):
+    def __init__(self, shared__state_data):
         smach.StateMachine.__init__(self, outcomes=['success', 'failure'])
         # shared_data is initialized inisde the initialize_subscribers() function
         # This is a global variable that is shared between all the states.
-        self.userdata.shared_data = shared_data
+        self.userdata.shared_data = shared__state_data
 
         # Implement a search for the name of the object e.g Path
         # Search for Point position 
         # Added to the Target Pose for giving it to the  StateMachine
-        self.userdata.shared_data.zed_data["objects_stamped"]
-
 
         with self:
             smach.StateMachine.add('Move_to_Buoy',
@@ -49,8 +46,9 @@ class YourStateMachine(smach.StateMachine):
 
 # Running the state machine
 if __name__ == '__main__':
+    from subscribers import shared_data, initialize_subscribers
     rospy.init_node('your_state_machine_node')
     file_path = os.path.join(os.path.dirname(__file__), '../../config/topics.yaml')
     initialize_subscribers(file_path)
-    sm = YourStateMachine()
+    sm = YourStateMachine(shared_data)
     outcome = sm.execute()

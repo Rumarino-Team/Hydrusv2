@@ -43,8 +43,7 @@ RUN arduino-cli lib install "Rosserial Arduino Library@0.7.9" && \
     arduino-cli lib install "Servo@1.2.1" && \
     arduino-cli lib install "BlueRobotics MS5837 Library@1.1.1"
 
-# Install additional Python packages using pip
-RUN pip3 install opencv-python matplotlib
+
 
 # Source ROS setup.bash script
 RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
@@ -56,7 +55,6 @@ RUN apt-get update && apt-get install -y python3-rosdep ros-noetic-rosserial-ard
 
 # Install any ROS dependencies
 RUN rosdep install --from-paths src --ignore-src -r -y
-
 # Copy embedded Arduino code
 WORKDIR /root/Arduino/libraries
 COPY ./embedded_arduino ./sensor_actuator_pkg
@@ -65,6 +63,8 @@ COPY ./embedded_arduino ./sensor_actuator_pkg
 WORKDIR /home/catkin_ws
 # Copy the rest of your application code
 COPY . /home/catkin_ws/src/hydrus
+# Install additional Python packages using pip
+RUN pip install -r src/hydrus/requirements.txt
 
 COPY ./ros-entrypoint.sh /home/catkin_ws/ros-entrypoint.sh
 RUN chmod +x /home/catkin_ws/ros-entrypoint.sh

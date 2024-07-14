@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import rospy
-from detector_node.msg import Detection
+from detector_node.msg import Detection, Detections  # Import the new message type
 from detector_node.srv import EnableDetector, EnableDetectorResponse, SetCustomClasses, SetCustomClassesResponse
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import Point, PoseStamped
@@ -12,6 +12,7 @@ from ultralytics import YOLO, YOLOWorld
 import numpy as np
 import tf.transformations as tft
 import yaml
+import os
 
 # Global variables to enable/disable detectors
 detectors = {
@@ -108,6 +109,10 @@ def zed_image_callback(msg):
         # Run detection using the current detector
         results = current_detector.track(cv_image, persist=True)[0]
 
+        # List to store all detections
+        all_detections = Detections()
+        class_names = []
+
         for data in results.boxes.data:
             x_min, y_min, x_max, y_max, track_id, conf, cls = data.cpu().numpy()
 
@@ -159,7 +164,15 @@ def zed_image_callback(msg):
                         else:
                             detection_msg.point = point_camera
 
-            pub.publish(detection_msg)
+            # Append the detection to the list
+            all_detections.detections.append(detection_msg)
+            class_names.append(current_detector.names[int(cls)])
+
+        # Add class names to the detections message
+        all_detections.class_names = class_names
+
+        # Publish all detections at once
+        pub.publish(all_detections)
 
         # Publish the annotated image
         annotated_msg = bridge.cv2_to_imgmsg(annotated_image, "bgr8")
@@ -185,12 +198,12 @@ def initialize_subscribers(topics_file):
 if __name__ == "__main__":
     rospy.init_node('yolo_detector')
 
-    pub = rospy.Publisher('/detector/box_detection', Detection, queue_size=10)
+    pub = rospy.Publisher('/detector/box_detection', Detections, queue_size=10)
     annotated_pub = rospy.Publisher('annotated_image', Image, queue_size=10)
 
     service_enable_detector = rospy.Service('enable_detector', EnableDetector, handle_enable_detector)
     service_set_custom_classes = rospy.Service('set_custom_classes', SetCustomClasses, handle_set_custom_classes)
-
-    initialize_subscribers("params/topics.yml")
+    config_path = os.path.join(rospy.get_param('detector_node'), '../configs/topics.yml')
+    initialize_subscribers(config_path)
 
     rospy.spin()

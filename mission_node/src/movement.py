@@ -13,8 +13,7 @@ class UpdatePoseState(smach.State):
     point: None
     
     """
-    def __init__(self,  edge_case_callback,next_state_callback = None , point = None ,threshold = 1.2,
-                        angle_threshold = 0.04):
+    def __init__(self,  edge_case_callback,next_state_callback = None , point = None ,threshold = 1.2, stabilization_time = 1):
         smach.State.__init__(self, outcomes=['success', 'edge_case_detected', 'aborpose_reachedted'],
                              input_keys=['shared_data'],
                              output_keys=['shared_data'])
@@ -22,61 +21,32 @@ class UpdatePoseState(smach.State):
         self.next_state_callback = next_state_callback
         self.point = point
         self.threshold = threshold
-        self.angle_threshold = angle_threshold
+        self.stabilization_time = stabilization_time
         self.init_waypoint_set_service = rospy.ServiceProxy()
 
-    @staticmethod
-    def generate_waypoints(num_waypoints):
-        waypoints = []
-        for _ in range(num_waypoints):
-            waypoint = Waypoint()
-            waypoint.point = Point(random.uniform(-10, 10), random.uniform(-10, 10), random.uniform(-20, -10))
-            waypoint.max_forward_speed = random.uniform(0, 5)
-            waypoint.heading_offset = random.uniform(-3.14, 3.14)
-            waypoint.use_fixed_heading = random.choice([True, False])
-            waypoint.radius_of_acceptance = random.uniform(0, 1)
-            waypoints.append(waypoint)
-        return waypoints
-    @staticmethod
-    def WaypointFromPose(pose, speed, heading_offset, fixed_heading, radius_of_acceptance):
-        waypoints = []
-        waypoint = Waypoint()
-        waypoint.point = pose.point
-        waypoint.max_forward_speed = speed
-        waypoint.heading_offset = heading_offset
-        waypoint.use_fixed_heading = fixed_heading
-        waypoint.radius_of_acceptance = radius_of_acceptance
-        waypoints.append(waypoint)
-        return waypoints
-    
+
 
     @staticmethod
-    def pose_reached( current_pose, destination_pose, threshold, angle_threshold):
+    def pose_reached( current_pose, destination_point, threshold):
         # Check if the current pose is within a certain threshold of the destination pose
         # The function 'compare_poses' should return True if the poses are similar within the threshold
         # print("current_pose",current_pose)
-        print(destination_pose)
 
         if not isinstance(current_pose, Pose):
             rospy.logerr("current_pose must be an instance of Pose and got of type: " + str(type(current_pose)))
 
-        if not isinstance(destination_pose, Pose):
-            rospy.logerr("destination_pose must be an instance of Pose and got of type: " + str(type(destination_pose)))
-
      
         position_diff = math.sqrt(
-                (current_pose.position.x - destination_pose.position.x) ** 2 +
-                (current_pose.position.y - destination_pose.position.y) ** 2 +
-                (current_pose.position.z - destination_pose.position.z) ** 2
+                (current_pose.position.x - destination_point.position.x) ** 2 +
+                (current_pose.position.y - destination_point.position.y) ** 2 +
+                (current_pose.position.z - destination_point.position.z) ** 2
             )
         
-        
-        yaw_angle_diff = quaternions_angle_difference(current_pose.pose.pose.orientation, destination_pose.orientation)
 
-        return position_diff <= threshold and yaw_angle_diff <= angle_threshold #and orientation_diff <= threshold
+        return position_diff <= threshold 
 
 
-    def call_movement(self, waypoints):
+    def call_movement(self):
         # Call InitWaypointSet service
         try:
             if not response.success:
@@ -90,14 +60,13 @@ class UpdatePoseState(smach.State):
             shared_data = userdata.shared_data
             start_time = rospy.Time.now()  # Start time for timeout calculation
             # For the target poses we only change the yaw orientation into the quaternion
-            target_poses = [Pose(point = waypoint.point, orientation = Quaternion(*euler_to_quaternion(0,0,self.heading_offset) )) for waypoint in waypoints]
             while not rospy.is_shutdown() and rospy.Time.now() - start_time < self.timeout_duration:
-                if self.pose_reached(shared_data.submarine_pose, target_poses[0], self.threshold):
+                if self.pose_reached(shared_data.zed_data["pose"], shared_data.detector["box_detection"], self.threshold):
                     rospy.loginfo("Destination reached. Verifying stabilization.")
                     # Ensure stabilization for the configured time
                     stabilization_start = rospy.Time.now()
                     while rospy.Time.now() - stabilization_start < rospy.Duration(0.5):
-                        if not self.pose_reached(shared_data.submarine_pose, target_poses[0], self.threshold):
+                        if not self.pose_reached(shared_data.zed_data["pose"], shared_data.detector["box_detection"], self.threshold):
                             break
                         rospy.sleep(0.1)
                     else:  # If the loop completes without breaking
@@ -127,17 +96,14 @@ class UpdatePoseToObjectState(UpdatePoseState):
 
     def execute(self, userdata):
         shared_data = userdata.shared_data
-        for object in  shared_data.detector["ObjectsStamped"]:
-            if self.desired_object_name == object.label:
+        for detection in  shared_data.detector["box_detection"]:
+            if self.desired_object_name ==  detection.:
                 self.object_data = object
-
-        if self.object_data:
-            self.waypoints.append(object_waypoint)
 
         else:
             # Failed to identify object
             return "object_not_detected"
 
         self.call_movement()
-        return self.loop_monitor(userdata, self.waypoints)
+        return self.loop_monitor(userdata)
 

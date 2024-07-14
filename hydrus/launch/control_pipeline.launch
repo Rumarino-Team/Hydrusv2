@@ -2,11 +2,6 @@
   <!-- Launch the Detector node -->
   <include file="$(find detector_node)/launch/zed_rosbag.launch" />
   <include file="$(find detector_node)/launch/detector.launch" />
-  
-
-
-
   <include file="$(find controller_node)/launch/control.launch" />
-    <include file="$(find controller_node)/launch/control.launch" />
 
 </launch>
