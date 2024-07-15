@@ -8,7 +8,7 @@ def call_navigate_service(target_pose):
     rospy.wait_for_service('navigate_to_waypoint')
     try:
         navigate_service = rospy.ServiceProxy('navigate_to_waypoint', NavigateToWaypoint)
-        request = NavigateToWaypointRequest(target_pose=target_pose)
+        request = NavigateToWaypointRequest(target_pose=target_point)
         response = navigate_service(request)
         rospy.loginfo("Service call successful: %s", response.success)
     except rospy.ServiceException as e:
@@ -16,11 +16,7 @@ def call_navigate_service(target_pose):
 
 if __name__ == '__main__':
     rospy.init_node('navigate_to_waypoint_client')
-
-    # Create a target pose
-    target_pose = Pose()
-    target_pose.position = Point(x=1.0, y=2.0, z=3.0)
-    target_pose.orientation = Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+    target_point = Point(x=1.0, y=2.0, z=3.0)
 
     # Call the service
-    call_navigate_service(target_pose)
+    call_navigate_service(target_point)

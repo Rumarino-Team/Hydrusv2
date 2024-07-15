@@ -5,7 +5,7 @@ from geometry_msgs.msg import Point
 import math
 import os
 from utils import quaternions_angle_difference, euler_to_quaternion
-
+from controller_node.srv import NavigateToWaypoint, NavigateToWaypointRequest
 class UpdatePoseState(smach.State):
     """Parameters:
 
@@ -46,17 +46,21 @@ class UpdatePoseState(smach.State):
         return position_diff <= threshold 
 
 
-    def call_movement(self):
+    def call_movement(self, target_point):
         # Call InitWaypointSet service
+        rospy.wait_for_service('navigate_to_waypoint')
         try:
-            if not response.success:
-                rospy.logerr("Failed to initiate InitWaypointSet service.")
-                return 'aborted'
+            navigate_service = rospy.ServiceProxy('navigate_to_waypoint', NavigateToWaypoint)
+            request = NavigateToWaypointRequest(target_pose=target_point)
+            response = navigate_service(request)
+            rospy.loginfo("Service call successful: %s", response.success)
+            
         except rospy.ServiceException as e:
-            rospy.logerr("Service call failed: %s" % e)
+            rospy.logerr("Service call failed: %s", e)
             return 'aborted'
 
-    def loop_monitor(self, userdata, waypoints):
+
+    def loop_monitor(self, userdata):
             shared_data = userdata.shared_data
             start_time = rospy.Time.now()  # Start time for timeout calculation
             # For the target poses we only change the yaw orientation into the quaternion
@@ -82,28 +86,66 @@ class UpdatePoseState(smach.State):
 
             rospy.loginfo("Failed to reach destination within the timeout.")
             return 'timeout'  # or 'failed' based on your terminology
+    
+
+    def execute(self, userdata):
+
+        # waypoints = self.generate_waypoints(self.num_waypoints)
+        # print(waypoints)
+        # waypoints = UpdatePoseState.WaypointFromPose( self.pose,  self.speed,self.heading_offset, 
+        #                                                     self.radius_of_acceptance)
+        # result = self.call_goto_movement(waypoints[0])
+        # if result == 'aborted':
+        #     return result
+        # return self.loop_monitor(userdata, waypoints)
+        pass
+
+
 
 class UpdatePoseToObjectState(UpdatePoseState):
-    def __init__(self, desired_object_name, edge_case_callback,next_state_callback ):
+    def __init__(self, desired_object_name, edge_case_callback,next_state_callback , point = None):
         super(UpdatePoseToObjectState, self).__init__(outcomes=['success', 'edge_case_detected', 'aborted', "object_not_detected"],
                                                       input_keys=['shared_data'],
-                                                      output_keys=['edge_case'],
+                                                      output_keys=['shared_data', 'detected_object'],
                                                  edge_case_callback=edge_case_callback,
-                                                   next_state_callback=next_state_callback)
+                                                   next_state_callback=next_state_callback,
+                                                   point= point)
         self.desired_object_name = desired_object_name
-        self.object_data = None
 
 
     def execute(self, userdata):
         shared_data = userdata.shared_data
-        for detection in  shared_data.detector["box_detection"]:
-            if self.desired_object_name ==  detection.:
-                self.object_data = object
+        detections = shared_data.detector["/detector/box_detection"]
+        for detection in  detections.detections:
+            if self.desired_object_name ==  detection.names[detection.cls]:
+                userdata.detected_object = detection
+                if self.point: # Update the Pose with the Offset of a Point
+                    target_point = Point( (detection.point.x + self.point.x ),(detection.point.y + self.point.y),(detection.point.z + self.point.z) ) 
+                    self.call_movement(target_point)
+                else:
+
+                    self.call_movement(detection.point)
+                return self.loop_monitor(userdata)
 
         else:
             # Failed to identify object
             return "object_not_detected"
 
-        self.call_movement()
-        return self.loop_monitor(userdata)
 
+
+class ContinuePoseObjectMovement(UpdatePoseState):
+    def __init__(self, point, edge_case_callback,next_state_callback ):
+        super(UpdatePoseToObjectState, self).__init__(outcomes=['success', 'edge_case_detected', 'aborted'],
+                                                      input_keys=['shared_data', "detected_object"],
+                                                      output_keys=['edge_case'],
+                                                 edge_case_callback=edge_case_callback,
+                                                   next_state_callback=next_state_callback)
+        self.point = point
+
+
+    def execute(self, userdata):
+        shared_data = userdata.shared_data
+        object = userdata.detected_object
+        target_point = Point(object.point.x + self.point.x,object.point.y + self.point.y,object.point.z + self.point.z)
+        self.call_movement(target_point)
+        return self.loop_monitor(userdata)
