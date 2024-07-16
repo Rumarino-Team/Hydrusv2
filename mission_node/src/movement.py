@@ -13,16 +13,16 @@ class UpdatePoseState(smach.State):
     point: None
     
     """
-    def __init__(self,  edge_case_callback,next_state_callback = None , point = None ,threshold = 1.2, stabilization_time = 1):
-        smach.State.__init__(self, outcomes=['success', 'edge_case_detected', 'aborpose_reachedted'],
-                             input_keys=['shared_data'],
-                             output_keys=['shared_data'])
+    def __init__(self,  edge_case_callback,next_state_callback = None , point = None ,threshold = 1.2, stabilization_time = 1,
+                outcomes=['success', 'edge_case_detected', 'aborpose_reachedted'], input_keys=['shared_data'] , output_keys=['shared_data']):
+        smach.State.__init__(self, outcomes=outcomes,
+                             input_keys=input_keys,
+                             output_keys=output_keys)
         self.edge_case_callback = edge_case_callback
         self.next_state_callback = next_state_callback
         self.point = point
         self.threshold = threshold
         self.stabilization_time = stabilization_time
-        self.init_waypoint_set_service = rospy.ServiceProxy()
 
 
 
@@ -103,7 +103,7 @@ class UpdatePoseState(smach.State):
 
 
 class UpdatePoseToObjectState(UpdatePoseState):
-    def __init__(self, desired_object_name, edge_case_callback,next_state_callback , point = None):
+    def __init__(self, desired_object_name, edge_case_callback = None,next_state_callback = None , point = None):
         super(UpdatePoseToObjectState, self).__init__(outcomes=['success', 'edge_case_detected', 'aborted', "object_not_detected"],
                                                       input_keys=['shared_data'],
                                                       output_keys=['shared_data', 'detected_object'],
@@ -134,13 +134,13 @@ class UpdatePoseToObjectState(UpdatePoseState):
 
 
 class ContinuePoseObjectMovement(UpdatePoseState):
-    def __init__(self, point, edge_case_callback,next_state_callback ):
+    def __init__(self, offset_point, edge_case_callback=None,next_state_callback=None ):
         super(UpdatePoseToObjectState, self).__init__(outcomes=['success', 'edge_case_detected', 'aborted'],
                                                       input_keys=['shared_data', "detected_object"],
                                                       output_keys=['edge_case'],
                                                  edge_case_callback=edge_case_callback,
                                                    next_state_callback=next_state_callback)
-        self.point = point
+        self.offset_point = offset_point
 
 
     def execute(self, userdata):

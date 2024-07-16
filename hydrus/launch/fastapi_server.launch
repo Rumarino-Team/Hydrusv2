@@ -1,0 +1,3 @@
+<launch>
+  <node name="fastapi_server" pkg="hydrus" type="server.py" output="screen"/>
+</launch>

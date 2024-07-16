@@ -19,7 +19,6 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Set custom classes and save YOLO model')
     parser.add_argument('--classes', nargs='+', required=True, help='List of custom classes')
-    parser.add_argument('--save_path', type=str, required=True, help='Path to save the custom YOLO model')
 
     args = parser.parse_args()
     

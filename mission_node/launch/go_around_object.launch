@@ -1,5 +1,5 @@
 <launch>
     <!-- Start the node -->
-    <param name="object_name" value="Person" />
+    <param name="object_name" value="person" />
     <node name="go_around_mission" pkg="mission_node" type="move_around_object.py" output="screen"/>
 </launch>

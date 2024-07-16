@@ -70,21 +70,19 @@ def initialize_subscribers(topics_file):
     # Initialize Subscribers
     rospy.Subscriber(topics_info['zed_camera']['pose'], PoseStamped, zed_pose_callback)
     rospy.Subscriber(topics_info['zed_camera']['path_map'], Path, zed_path_map_callback)
-    rospy.Subscriber(topics_info['detector']["box_detection"], Detections, box_detection_callback)
+    rospy.Subscriber(topics_info['detector_node']["box_detection"], Detections, box_detection_callback)
     #wait 5 seconds for the subscribers to get the first message
     rospy.sleep(5)
     # Check if any of the subscribed data is still None
     data_sources = [
         ('zed_pose', shared_data.zed_data['pose']),
-        ('zed_odom', shared_data.zed_data['odom']),
-        ('zed_path_odom', shared_data.zed_data['path_odom']),
-        ('zed_path_map', shared_data.zed_data['path_map']),
+        ('zed_odom', shared_data.zed_data['odom'])
     ]
  
-    none_sources = [name for name, value in data_sources if value is None]
-    if none_sources:
-        missing_data_info = ", ".join(none_sources)
-        rospy.logerr("The following data sources are still None: {0}".format(missing_data_info))
-        raise ROSException("Not all required data sources are providing data.")
-    else:
-        rospy.loginfo("All subscribed data sources are providing data.")
+    # none_sources = [name for name, value in data_sources if value is None]
+    # if none_sources:
+    #     missing_data_info = ", ".join(none_sources)
+    #     rospy.logerr("The following data sources are still None: {0}".format(missing_data_info))
+    #     raise ROSException("Not all required data sources are providing data.")
+    # else:
+    #     rospy.loginfo("All subscribed data sources are providing data.")

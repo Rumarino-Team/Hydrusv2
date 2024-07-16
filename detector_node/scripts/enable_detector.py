@@ -19,11 +19,11 @@ if __name__ == '__main__':
 
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Enable a specific detector')
-    parser.add_argument('--detector', type=str, required=True, help='Name of the detector to enable (e.g., "yolo" or "another_model")')
+    parser.add_argument('--detector', type=str, help='Name of the detector to enable (e.g., "yolo" or "another_model")', default= "yolo_world")
 
     args = parser.parse_args()
     
-    # Enable the specified detector
+    # Enable the specified dete ctor
     success = enable_detector(args.detector)
     if success:
         rospy.loginfo(f"{args.detector} enabled successfully.")
