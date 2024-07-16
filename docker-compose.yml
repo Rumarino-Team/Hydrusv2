@@ -7,18 +7,27 @@ services:
     ports:
       - "11311:11311"
 
-  # zed-camera:
-  #   image: stereolabs/zed:3.8
-  #   privileged: true
-  #   devices:
-  #     - /dev/video0:/dev/video0
-  #   environment:
-  #     - ROS_MASTER_URI=http://ros-master:11311
-  #   depends_on:
-  #     - ros-master
+  zed-camera:
+    build:
+      context: .
+      dockerfile: camera.Dockerfile
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - ROS_MASTER_URI=http://ros-master:11311
+    depends_on:
+      - ros-master
+
   hydrus:
     build:
       context: .
+      dockerfile: hydrus.Dockerfile
     privileged: true
     stdin_open: true
     tty: true
@@ -31,4 +40,4 @@ services:
       - ARDUINO_BOARD=arduino:avr:mega
     depends_on:
       - ros-master
-      # - zed-camera
+      - zed-camera
