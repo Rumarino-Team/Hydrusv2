@@ -4,8 +4,8 @@
   <include file="$(find detector_node)/launch/detector.launch" />
   <include file="$(find controller_node)/launch/control.launch" />
 
-    <node name="enable_detector_cli" pkg="detector_node" type="enable_detector.py" output="screen">
-    <param name="detector" value="yolo_world"/>
+  <node name="enable_detector_cli" pkg="detector_node" type="enable_detector.py" output="screen">
+  <param name="detector" value="yolo_world"/>
   </node>
   <include file="$(find mission_node)/launch/go_around_object.launch"/>
 

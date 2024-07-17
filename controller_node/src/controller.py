@@ -6,6 +6,7 @@ import rospy
 from geometry_msgs.msg import Vector3, PoseStamped, Point
 from controller_node.srv import NavigateToWaypoint, NavigateToWaypointResponse, SetParameters, SetParametersResponse
 import os
+
 def read_yaml_file(file_path):
     try:
         with open(file_path, 'r') as file:
@@ -13,8 +14,7 @@ def read_yaml_file(file_path):
     except Exception as e:
         rospy.logerr("Failed to read YAML file: %s", str(e))
         return None
-    
-    
+
 class SubController:
     def __init__(self):
         rospy.init_node('subcontroller', anonymous=True)
@@ -33,6 +33,7 @@ class SubController:
         self.DEPTH_MOTORS_ID = [0, 1, 2, 3]  # front left, front right, back left, back right
         self.FRONT_MOTORS_ID = [4, 5]  # left, right
         self.BACK_MOTORS_ID = [6, 7]  # left, right
+
         config_path = os.path.join(rospy.get_param('controller_node'), '../configs/topics.yml')
         self.initialize_subscribers(config_path)
 
@@ -62,7 +63,6 @@ class SubController:
             return
 
         rospy.loginfo("YAML file read successfully.")
-
         rospy.Subscriber(topics_info['zed_camera']['pose'], PoseStamped, self.zed_pose_callback)
 
     def zed_pose_callback(self, msg):
@@ -72,6 +72,9 @@ class SubController:
         self.detection = msg
 
     def move_submarine(self, current_pose, target_point):
+        if current_pose is None or target_point is None:
+            return
+
         if self.moving[0]:  # Go up or down
             if abs(current_pose.position.z - target_point.z) > self.DELTA:
                 if (current_pose.position.z - target_point.z) > self.DELTA:
@@ -133,7 +136,7 @@ class SubController:
         return angle
 
     def handle_navigate_request(self, req):
-        self.target_point = req.target_pose.position  # Assuming the target pose contains only the position
+        self.target_point = req.target_point  # Correctly handle the target_point directly from the request
         self.moving = [True, False, False]  # Start with moving on the z-axis
         return NavigateToWaypointResponse(success=True)
 
@@ -146,14 +149,6 @@ class SubController:
 
     def run(self):
         rospy.spin()  # Keep the service running
-
-def read_yaml_file(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            return yaml.safe_load(file)
-    except Exception as e:
-        rospy.logerr("Failed to read YAML file: %s", str(e))
-        return None
 
 if __name__ == '__main__':
     try:
