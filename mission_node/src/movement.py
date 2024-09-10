@@ -1,7 +1,8 @@
 import rospy
+import time
 import smach
 import random
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Point, PoseStamped
 import math
 from utils import quaternions_angle_difference, euler_to_quaternion
 from controller_node.srv import NavigateToWaypoint, NavigateToWaypointRequest
@@ -25,14 +26,19 @@ class UpdatePoseState(smach.State):
         self.stabilization_time = stabilization_time
 
     @staticmethod
-    def pose_reached(current_pose, destination_point, threshold):
-        # if not isinstance(current_pose, Point):
-        #     rospy.logerr("current_pose must be an instance of Point and got of type: " + str(type(current_pose)))
+    def pose_reached( pose_obj, destination_point, threshold):
+        # Check if the current pose is within a certain threshold of the destination pose
+        # The function 'compare_poses' should return True if the poses are similar within the threshold
+        # print("current_pose",current_pose)
 
+        if not isinstance(pose_obj, PoseStamped):
+            rospy.logerr("current_pose must be an instance of Pose and got of type: " + str(type(current_pose)))
+
+        current_pose = pose_obj.pose
         position_diff = math.sqrt(
-                (current_pose.pose.position.x - destination_point.x) ** 2 +
-                (current_pose.pose.position.y - destination_point.y) ** 2 +
-                (current_pose.pose.position.z - destination_point.z) ** 2
+                (current_pose.position.x - destination_point.x) ** 2 +
+                (current_pose.position.y - destination_point.y) ** 2 +
+                (current_pose.position.z - destination_point.z) ** 2
             )
 
         return position_diff <= threshold 
@@ -49,18 +55,21 @@ class UpdatePoseState(smach.State):
             return 'aborted'
 
     def loop_monitor(self, userdata, target_point):
-        shared_data = userdata.shared_data
-        while not rospy.is_shutdown():
-            if self.pose_reached(shared_data.zed_data["pose"], target_point, self.threshold):
-                rospy.loginfo("Destination reached. Verifying stabilization.")
-                stabilization_start = rospy.Time.now()
-                while rospy.Time.now() - stabilization_start < rospy.Duration(0.5):
-                    if not self.pose_reached(shared_data.zed_data["pose"], target_point, self.threshold):
-                        break
-                    rospy.sleep(0.1)
-                else:  # If the loop completes without breaking
-                    rospy.loginfo("Destination stabilized.")
-                    return 'success'
+            shared_data = userdata.shared_data
+            start_time = rospy.Time.now().secs  # Start time for timeout calculation
+            # For the target poses we only change the yaw orientation into the quaternion
+            while not rospy.is_shutdown() and rospy.Time.now().secs - start_time < self.timeout_duration:
+                if self.pose_reached(shared_data.zed_data["pose"], target_point, self.threshold):
+                    rospy.loginfo("Destination reached. Verifying stabilization.")
+                    # Ensure stabilization for the configured time
+                    stabilization_start = rospy.Time.now()
+                    while rospy.Time.now() - stabilization_start < rospy.Duration(0.5):
+                        if not self.pose_reached(shared_data.zed_data["pose"], target_point, self.threshold):
+                            break
+                        rospy.sleep(0.1)
+                    else:  # If the loop completes without breaking
+                        rospy.loginfo("Destination stabilized.")
+                        return 'success'
 
             if False: #self.edge_case_callback(shared_data):
                 rospy.logwarn("Edge case detected, transitioning to handle situation.")
@@ -86,25 +95,34 @@ class UpdatePoseToObjectState(UpdatePoseState):
     def execute(self, userdata):
         shared_data = userdata.shared_data
         detections = shared_data.detector["box_detection"]
-        for detection in detections.detections:
-            if self.desired_object_name == detections.class_names[detection.cls]:
+        if rospy.is_shutdown():
+            return "aborted"
+        if detections == None:
+            rospy.logwarn("Box_detection not yet available")
+            time.sleep(1)
+            return "object_not_detected"
+        for detection in  detections.detections:
+            print(f"detection = {detection}, cls = {detection.cls}")
+            if self.desired_object_name in detections.class_names:
                 userdata.detected_object = detection
                 if self.point:  # Update the Pose with the Offset of a Point
                     target_point = Point(detection.point.x + self.point.x, detection.point.y + self.point.y, detection.point.z + self.point.z)
                     self.call_movement(target_point)
+                    return self.loop_monitor(userdata, target_point)
                 else:
                     self.call_movement(detection.point)
-                return self.loop_monitor(userdata, target_point)
+                    return self.loop_monitor(userdata, detection.point)
+
         else:
             return "object_not_detected"
 
 class ContinuePoseObjectMovement(UpdatePoseState):
-    def __init__(self, offset_point, edge_case_callback=None, next_state_callback=None):
+    def __init__(self, offset_point, edge_case_callback=None,next_state_callback=None ):
         super(ContinuePoseObjectMovement, self).__init__(outcomes=['success', 'edge_case_detected', 'aborted'],
-                                                         input_keys=['shared_data', 'detected_object'],
-                                                         output_keys=['edge_case'],
-                                                         edge_case_callback=edge_case_callback,
-                                                         next_state_callback=next_state_callback)
+                                                      input_keys=['shared_data', "detected_object"],
+                                                      output_keys=['edge_case'],
+                                                 edge_case_callback=edge_case_callback,
+                                                   next_state_callback=next_state_callback)
         self.offset_point = offset_point
 
     def execute(self, userdata):
@@ -114,4 +132,4 @@ class ContinuePoseObjectMovement(UpdatePoseState):
                              detected_object.point.y + self.offset_point.y,
                              detected_object.point.z + self.offset_point.z)
         self.call_movement(target_point)
-        return self.loop_monitor(userdata,target_point)
+        return self.loop_monitor(userdata, target_point)

@@ -15,9 +15,11 @@ movement_edge_cases = [
     ""
 ]
 
-def movement_edge_case_callback(shared_data,waypoint, config_data):
-    if shared_data.dvl_data.depth >= config_data['pool_depth']: # Check if depth is on the limit of the pool surface. 
-        if waypoint.point.z > config_data['pool_depth']: # Check if waypoint is above surface
-            return True
+#def movement_edge_case_callback(shared_data,waypoint, config_data):
+def movement_edge_case_callback(shared_data):
+    # For now it doesn't seems to be necessary
+ #   if shared_data.dvl_data.depth >= config_data['pool_depth']: # Check if depth is on the limit of the pool surface. 
+ #       if waypoint.point.z > config_data['pool_depth']: # Check if waypoint is above surface
+    return False
 
     
