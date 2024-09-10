@@ -19,6 +19,10 @@ detectors = {
     "yolo": YOLO("/yolov8n.pt"),
     "yolo_world": YOLOWorld("/yolov8s-world.pt")
 }
+
+pub = rospy.Publisher('/detector/box_detection', Detections, queue_size=10)
+annotated_pub = rospy.Publisher('annotated_image', Image, queue_size=10)
+
 current_detector = None
 bridge = CvBridge()
 depth_image = None
@@ -97,7 +101,7 @@ def transform_to_global(point, pose):
 
 # Callback function for image data
 def zed_image_callback(msg):
-    global depth_image, camera_info, imu_pose, current_detector
+    global depth_image, camera_info, imu_pose, current_detector, pub, annotated_pub
     if current_detector is None:
         return
 
@@ -211,9 +215,6 @@ def initialize_subscribers(topics_file):
 
 if __name__ == "__main__":
     rospy.init_node('yolo_detector')
-
-    pub = rospy.Publisher('/detector/box_detection', Detections, queue_size=10)
-    annotated_pub = rospy.Publisher('annotated_image', Image, queue_size=10)
 
     service_enable_detector = rospy.Service('enable_detector', EnableDetector, handle_enable_detector)
     service_set_custom_classes = rospy.Service('set_custom_classes', SetCustomClasses, handle_set_custom_classes)
