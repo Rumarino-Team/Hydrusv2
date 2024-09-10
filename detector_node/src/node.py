@@ -16,15 +16,14 @@ import os
 
 # Global variables to enable/disable detectors
 detectors = {
-    "yolo": YOLO("yolov8n.pt"),
-    "yolo_world": YOLOWorld("yolov8s-world.pt")
+    "yolo": YOLO("/yolov8n.pt"),
+    "yolo_world": YOLOWorld("/yolov8s-world.pt")
 }
 current_detector = None
 bridge = CvBridge()
 depth_image = None
 camera_info = None
 imu_pose = None
-
 
 def read_yaml_file(file_path):
     with open(file_path, 'r') as stream:
@@ -41,6 +40,7 @@ def handle_enable_detector(req):
 
     if detector_name in detectors:
         current_detector = detectors[detector_name]
+        current_detector.to("cuda")
         rospy.loginfo(f"{detector_name} detector enabled.")
         return EnableDetectorResponse(success=True)
     else:
@@ -113,8 +113,12 @@ def zed_image_callback(msg):
         all_detections = Detections()
         class_names = []
 
-        for data in results.boxes.data:
-            x_min, y_min, x_max, y_max, track_id, conf, cls = data.cpu().numpy()
+        for box in results.boxes:
+            x_min, y_min, x_max, y_max = box.xyxy.cpu().numpy()[0]
+
+            track_id = box.id
+            conf = box.conf
+            cls = box.cls
 
             detection_msg = Detection()
             detection_msg.cls = int(cls)  # The class label of the detected object
@@ -129,7 +133,7 @@ def zed_image_callback(msg):
 
             # Draw bounding box and label on the image
             cv2.rectangle(annotated_image, (int(x_min), int(y_min)), (int(x_max), int(y_max)), (0, 255, 0), 2)
-            label = f"{int(cls)}: {conf:.2f}"
+            label = f"{int(cls)}: {int(conf):.2f}"
             cv2.putText(annotated_image, label, (int(x_min), int(y_min) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
             # Calculate the average depth within the bounding box
