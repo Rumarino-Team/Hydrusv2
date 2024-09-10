@@ -29,8 +29,17 @@ services:
       context: .
       dockerfile: hydrus.Dockerfile
     privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     stdin_open: true
     tty: true
+    volumes:
+      - ".:/catkin_ws/src"
     ports:
       - "8000:8000"
     devices:
