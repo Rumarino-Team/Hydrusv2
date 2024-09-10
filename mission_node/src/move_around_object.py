@@ -6,7 +6,7 @@
 import smach
 import rospy
 from movement import UpdatePoseState, UpdatePoseToObjectState, ContinuePoseObjectMovement
-from edge_cases import movement_edge_cases
+from edge_cases import movement_edge_case_callback, movement_edge_cases
 from geometry_msgs.msg import Point
 import os
 

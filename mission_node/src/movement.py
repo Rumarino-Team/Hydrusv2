@@ -24,6 +24,7 @@ class UpdatePoseState(smach.State):
         self.point = point
         self.threshold = threshold
         self.stabilization_time = stabilization_time
+        self.timeout_duration = 30
 
     @staticmethod
     def pose_reached( pose_obj, destination_point, threshold):
@@ -31,10 +32,10 @@ class UpdatePoseState(smach.State):
         # The function 'compare_poses' should return True if the poses are similar within the threshold
         # print("current_pose",current_pose)
 
+        current_pose = pose_obj.pose
         if not isinstance(pose_obj, PoseStamped):
             rospy.logerr("current_pose must be an instance of Pose and got of type: " + str(type(current_pose)))
 
-        current_pose = pose_obj.pose
         position_diff = math.sqrt(
                 (current_pose.position.x - destination_point.x) ** 2 +
                 (current_pose.position.y - destination_point.y) ** 2 +
