@@ -2,10 +2,11 @@
 set -e
 
 # Start roscore in the background
+source /opt/ros/melodic/setup.bash
+./src/catkin.sh
 source devel/setup.bash
 roscore &
 sleep 2
-
 
 #Give Permissions to Nodes to execute
 
